@@ -1,0 +1,101 @@
+[
+  {
+    "Id": 2,
+    "Username": "bob.jones",
+    "Email": "bob.jones@acme.com",
+    "Role": "Product Manager",
+    "Department": "Product",
+    "Status": "Active",
+    "JoinedAt": "2022-11-01T10:30:00Z"
+  },
+  {
+    "Id": 3,
+    "Username": "carol.williams",
+    "Email": "carol.williams@acme.com",
+    "Role": "UI/UX Designer",
+    "Department": "Design",
+    "Status": "On Leave",
+    "JoinedAt": "2023-07-20T14:15:00Z"
+  },
+  {
+    "Id": 4,
+    "Username": "dave.brown",
+    "Email": "dave.brown@acme.com",
+    "Role": "DevOps Engineer",
+    "Department": "Engineering",
+    "Status": "Active",
+    "JoinedAt": "2021-09-10T08:45:00Z"
+  },
+  {
+    "Id": 5,
+    "Username": "eve.davis",
+    "Email": "eve.davis@acme.com",
+    "Role": "HR Specialist",
+    "Department": "Human Resources",
+    "Status": "Active",
+    "JoinedAt": "2024-01-05T11:00:00Z"
+  },
+  {
+    "Id": 6,
+    "Username": "frank.miller",
+    "Email": "frank.miller@acme.com",
+    "Role": "Backend Developer",
+    "Department": "Engineering",
+    "Status": "Active",
+    "JoinedAt": "2023-05-12T09:30:00Z"
+  },
+  {
+    "Id": 7,
+    "Username": "grace.wilson",
+    "Email": "grace.wilson@acme.com",
+    "Role": "Marketing Lead",
+    "Department": "Marketing",
+    "Status": "Active",
+    "JoinedAt": "2022-02-28T13:00:00Z"
+  },
+  {
+    "Id": 8,
+    "Username": "henry.taylor",
+    "Email": "henry.taylor@acme.com",
+    "Role": "Sales Executive",
+    "Department": "Sales",
+    "Status": "Inactive",
+    "JoinedAt": "2020-08-15T16:00:00Z"
+  },
+  {
+    "Id": 9,
+    "Username": "ivy.anderson",
+    "Email": "ivy.anderson@acme.com",
+    "Role": "Data Analyst",
+    "Department": "Analytics",
+    "Status": "Active",
+    "JoinedAt": "2023-09-01T10:00:00Z"
+  },
+  {
+    "Id": 10,
+    "Username": "jack.thomas",
+    "Email": "jack.thomas@acme.com",
+    "Role": "Frontend Developer",
+    "Department": "Engineering",
+    "Status": "On Leave",
+    "JoinedAt": "2022-06-20T08:00:00Z"
+  },
+  {
+    "Id": 11,
+    "Username": "karen.jackson",
+    "Email": "karen.jackson@acme.com",
+    "Role": "Product Designer",
+    "Department": "Design",
+    "Status": "Active",
+    "JoinedAt": "2024-02-14T09:15:00Z"
+  },
+  {
+    "Id": 12,
+    "Username": "leo.white",
+    "Email": "leo.white@acme.com",
+    "Role": "QA Engineer",
+    "Department": "Engineering",
+    "Status": "Active",
+    "JoinedAt": "2023-11-30T11:45:00Z"
+  }
+]
