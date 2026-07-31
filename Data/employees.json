@@ -1,41 +1,5 @@
 [
   {
-    "Id": 2,
-    "Username": "bob.jones",
-    "Email": "bob.jones@acme.com",
-    "Role": "Product Manager",
-    "Department": "Product",
-    "Status": "Active",
-    "JoinedAt": "2022-11-01T10:30:00Z"
-  },
-  {
-    "Id": 3,
-    "Username": "carol.williams",
-    "Email": "carol.williams@acme.com",
-    "Role": "UI/UX Designer",
-    "Department": "Design",
-    "Status": "On Leave",
-    "JoinedAt": "2023-07-20T14:15:00Z"
-  },
-  {
-    "Id": 4,
-    "Username": "dave.brown",
-    "Email": "dave.brown@acme.com",
-    "Role": "DevOps Engineer",
-    "Department": "Engineering",
-    "Status": "Active",
-    "JoinedAt": "2021-09-10T08:45:00Z"
-  },
-  {
-    "Id": 5,
-    "Username": "eve.davis",
-    "Email": "eve.davis@acme.com",
-    "Role": "HR Specialist",
-    "Department": "Human Resources",
-    "Status": "Active",
-    "JoinedAt": "2024-01-05T11:00:00Z"
-  },
-  {
     "Id": 6,
     "Username": "frank.miller",
     "Email": "frank.miller@acme.com",

@@ -8,6 +8,9 @@ bin-release/
 # Other files and folders
 .settings/
 
+# Runtime user data store (regenerated locally, contains password hashes)
+Data/users.json
+
 # Executables
 *.swf
 *.air

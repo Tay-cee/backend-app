@@ -1,103 +1,89 @@
-﻿using backend_app.Models;
+using backend_app.Models;
 using backend_app.services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 
-namespace backend_app.Controllers
+namespace backend_app.Controllers;
+
+[ApiController]
+[Route("api/auth")]
+public class AuthController : ControllerBase
 {
-
-    [ApiController]
-    [Route("api/[controller]")]
-    public class AuthController : ControllerBase
+    private readonly IAuthService _auth;
+    private readonly IWebHostEnvironment _env;
+    public AuthController(IAuthService auth, IWebHostEnvironment env)
     {
-        private readonly UserService _userService;
-        private readonly IConfiguration _configuration;
+        _auth = auth;
+        _env = env;
+    }
 
-        public AuthController(UserService userService, IConfiguration configuration)
+    private string? Ip => HttpContext.Connection.RemoteIpAddress?.ToString();
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest req)
+    {
+        var res = await _auth.RegisterAsync(req, Ip);
+        SetRefreshCookie(res.RefreshToken, res.RefreshTokenExpiresAt);
+        return Ok(res);
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequest req)
+    {
+        var res = await _auth.LoginAsync(req, Ip);
+        SetRefreshCookie(res.RefreshToken, res.RefreshTokenExpiresAt);
+        return Ok(res);
+    }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshRequest body)
+    {
+        // Refresh token can come from HttpOnly cookie or body
+        var refreshToken = body.RefreshToken ?? Request.Cookies["refresh_token"];
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return BadRequest(new { error = "Refresh token missing." });
+
+        var req = body with { RefreshToken = refreshToken };
+        var res = await _auth.RefreshAsync(req, Ip);
+        SetRefreshCookie(res.RefreshToken, res.RefreshTokenExpiresAt);
+        return Ok(res);
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        if (Request.Cookies.TryGetValue("refresh_token", out var rt) && !string.IsNullOrEmpty(rt))
+            await _auth.RevokeAsync(rt, Ip);
+        Response.Cookies.Delete("refresh_token");
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public IActionResult Me()
+    {
+        var id = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+        var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value);
+        return Ok(new { id, userName, email, roles });
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("admin-only")]
+    public IActionResult AdminOnly() => Ok("You are admin.");
+
+    private void SetRefreshCookie(string token, DateTime expires)
+    {
+        Response.Cookies.Append("refresh_token", token, new CookieOptions
         {
-            _userService = userService;
-            _configuration = configuration;
-        }
-
-        [HttpPost("register")]
-        public IActionResult Register([FromBody] User.RegisterDto model)
-        {
-            if (_userService.FindUsername(model.Username) != null) 
-            {
-                return BadRequest(new { message = "Username already exists" });
-            }
-
-            var user = new User
-            {
-                Username = model.Username,
-                Email = model.Email,
-                PasswordHash = _userService.HashPassword(model.Password)
-            };
-
-            _userService.AddUser(user);
-
-            return Ok(new { message = "User registered successfully" });
-        }
-
-        [HttpPost("login")]
-        public IActionResult Login([FromBody] User.LoginDto model)
-        {
-            var user = _userService.FindUsername(model.Username);
-            if (user == null || !_userService.VerifyPassword(model.Password, user.PasswordHash))
-            {
-                return Unauthorized(new { message = "Invalid username or password" });
-            }
-            var token = GenerateJwtToken(user);
-            return Ok(new User.AuthResponseDto(token, DateTime.UtcNow.AddMinutes(
-                Convert.ToDouble(_configuration["Jwt:ExpirationMinutes"]))));
-        }
-
-        [HttpGet("me")]
-        [Authorize]
-        public IActionResult GetCurrentUser()
-        {
-            var username = User.FindFirstValue(ClaimTypes.Name)
-                        ?? User.FindFirstValue(JwtRegisteredClaimNames.UniqueName);
-
-            if (username == null) return Unauthorized();
-
-            var user = _userService.FindUsername(username);
-            if (user == null)
-            {
-                return NotFound(new { message = "User not found" });
-            }
-
-            return Ok(new User.UserDto(user.Username, user.Email));
-        }
-
-
-        private string GenerateJwtToken(User user)
-        {
-            var key = new SymmetricSecurityKey(
-                System.Text.Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Username),
-                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
-
-            var taken = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpirationMinutes"])),
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(taken);
-        }
+            HttpOnly = true,
+            Secure = !_env.IsDevelopment(), // dev server (Vite) talks to the API over plain http on localhost:5188
+            SameSite = SameSiteMode.Strict,
+            Expires = expires,
+            IsEssential = true,
+            Path = "/api/auth"
+        });
     }
 }
