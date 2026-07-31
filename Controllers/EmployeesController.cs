@@ -70,7 +70,7 @@ namespace backend_app.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public IActionResult Create([FromBody] CreateEmployeeDto dto)
         {
             var employee = new Employee
