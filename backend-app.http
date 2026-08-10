@@ -1,6 +1,26 @@
 @backend_app_HostAddress = http://localhost:5188
 
-GET {{backend_app_HostAddress}}/weatherforecast/
+### Register
+POST {{backend_app_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "userName": "demo",
+  "email": "demo@example.com",
+  "password": "correct-horse-battery"
+}
+
+### Login
+POST {{backend_app_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@example.com",
+  "password": "correct-horse-battery"
+}
+
+### List employees (requires Authorization: Bearer <accessToken> from login/register above)
+GET {{backend_app_HostAddress}}/api/employees
 Accept: application/json
 
 ###

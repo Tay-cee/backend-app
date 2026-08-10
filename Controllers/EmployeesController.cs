@@ -70,7 +70,7 @@ namespace backend_app.Controllers
         }
 
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public IActionResult Create([FromBody] CreateEmployeeDto dto)
         {
             var employee = new Employee
@@ -88,7 +88,7 @@ namespace backend_app.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public IActionResult Delete(int id)
         {
             var deleted = _employeeService.Delete(id);

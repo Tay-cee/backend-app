@@ -1,8 +1,11 @@
 using backend_app;
 using backend_app.Configuration;
 using backend_app.Data;
+using backend_app.Exceptions;
 using backend_app.services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
@@ -12,7 +15,17 @@ var builder = WebApplication.CreateBuilder(args);
 const string FrontendCorsPolicy = "FrontendDev";
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.Section));
-var jwt = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>()!;
+
+var jwt = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>()
+    ?? throw new InvalidOperationException("Missing required 'Jwt' configuration section.");
+
+if (string.IsNullOrWhiteSpace(jwt.Secret))
+{
+    throw new InvalidOperationException(
+        "Jwt:Secret is not configured. For local development run " +
+        "`dotnet user-secrets set \"Jwt:Secret\" \"<a long random value>\"` in the backend-app " +
+        "project directory; in other environments set the Jwt__Secret environment variable.");
+}
 
 builder.Services.AddSingleton<JsonDataStore>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
@@ -64,6 +77,34 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+
+        var (statusCode, title) = exception switch
+        {
+            ApiException apiEx => (apiEx.StatusCode, apiEx.Message),
+            _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
+        };
+
+        if (statusCode == StatusCodes.Status500InternalServerError)
+        {
+            context.RequestServices.GetRequiredService<ILogger<Program>>()
+                .LogError(exception, "Unhandled exception while processing {Path}", context.Request.Path);
+        }
+
+        context.Response.StatusCode = statusCode;
+        context.Response.ContentType = "application/problem+json";
+        await context.Response.WriteAsJsonAsync(new ProblemDetails
+        {
+            Status = statusCode,
+            Title = title,
+        });
+    });
+});
 
 if (app.Environment.IsDevelopment())
 {

@@ -7,7 +7,8 @@ public class JsonDataStore
 {
     private readonly string _filePath;
     private readonly List<AppUser> _users;
-    private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly object _usersLock = new();
+    private readonly SemaphoreSlim _saveLock = new(1, 1);
 
     public JsonDataStore(IWebHostEnvironment env)
     {
@@ -24,21 +25,33 @@ public class JsonDataStore
         }
     }
 
-    public IEnumerable<AppUser> Users => _users;
-    public void AddUser(AppUser user) => _users.Add(user);
+    // Snapshotted under lock so callers iterating this while another request adds a
+    // user don't hit a "collection was modified" exception (List<T> isn't thread-safe).
+    public IEnumerable<AppUser> Users
+    {
+        get { lock (_usersLock) return _users.ToList(); }
+    }
+
+    public void AddUser(AppUser user)
+    {
+        lock (_usersLock) _users.Add(user);
+    }
 
     public async Task SaveChangesAsync()
     {
-        await _lock.WaitAsync();
+        List<AppUser> snapshot;
+        lock (_usersLock) snapshot = _users.ToList();
+
+        await _saveLock.WaitAsync();
         try
         {
             var options = new JsonSerializerOptions { WriteIndented = true };
-            var json = JsonSerializer.Serialize(_users, options);
+            var json = JsonSerializer.Serialize(snapshot, options);
             await File.WriteAllTextAsync(_filePath, json);
         }
         finally
         {
-            _lock.Release();
+            _saveLock.Release();
         }
     }
 }

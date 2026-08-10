@@ -1,5 +1,6 @@
 using backend_app.Configuration;
 using backend_app.Data;
+using backend_app.Exceptions;
 using backend_app.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -30,11 +31,17 @@ public class AuthService : IAuthService
     public async Task<AuthResponse> RegisterAsync(RegisterRequest req, string? ip)
     {
         if (_store.Users.Any(u => u.Email == req.Email))
-            throw new Exception("Email already registered.");
+            throw new ApiException(StatusCodes.Status409Conflict, "Email already registered.");
         if (_store.Users.Any(u => u.UserName == req.UserName))
-            throw new Exception("Username already taken.");
+            throw new ApiException(StatusCodes.Status409Conflict, "Username already taken.");
+
+        // The very first account in a fresh deployment is seeded as Admin so that
+        // Admin-only endpoints (e.g. deleting employees) are reachable at all.
+        var isFirstUser = !_store.Users.Any();
 
         var user = new AppUser { Email = req.Email, UserName = req.UserName };
+        if (isFirstUser)
+            user.Roles = new List<string> { "User", "Admin" };
         user.PasswordHash = _hasher.HashPassword(user, req.Password);
 
         _store.AddUser(user);
@@ -53,25 +60,38 @@ public class AuthService : IAuthService
         var result = _hasher.VerifyHashedPassword(dummyUser, hashToVerify, req.Password);
 
         if (user is null || result == PasswordVerificationResult.Failed)
-            throw new Exception("Invalid credentials.");
+            throw new ApiException(StatusCodes.Status401Unauthorized, "Invalid credentials.");
 
         return await IssueTokensAsync(user, ip);
     }
 
     public async Task<AuthResponse> RefreshAsync(RefreshRequest req, string? ip)
     {
-        var principal = _tokens.GetPrincipalFromExpiredToken(req.AccessToken)
-            ?? throw new Exception("Invalid access token.");
+        if (string.IsNullOrWhiteSpace(req.RefreshToken))
+            throw new ApiException(StatusCodes.Status400BadRequest, "Refresh token missing.");
 
-        var userId = Guid.Parse(principal.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var user = _store.Users.FirstOrDefault(u => u.Id == userId)
-            ?? throw new Exception("User not found.");
+        var incomingHash = _tokens.HashToken(req.RefreshToken);
 
-        var incomingHash = _tokens.HashToken(req.RefreshToken!);
+        // The client's access token has usually expired by the time it refreshes (that's the point),
+        // so it's only used, when present, as a fast path to find the user. Falling back to scanning
+        // by refresh-token hash lets a client refresh from the HttpOnly cookie alone (e.g. right after
+        // a page load, before it has any access token in memory).
+        AppUser? user = null;
+        if (!string.IsNullOrWhiteSpace(req.AccessToken))
+        {
+            var principal = _tokens.GetPrincipalFromExpiredToken(req.AccessToken);
+            if (principal is not null && Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                user = _store.Users.FirstOrDefault(u => u.Id == userId);
+        }
+        user ??= _store.Users.FirstOrDefault(u => u.RefreshTokens.Any(rt => rt.TokenHash == incomingHash));
+
+        if (user is null)
+            throw new ApiException(StatusCodes.Status401Unauthorized, "Refresh token not recognized.");
+
         var existing = user.RefreshTokens.FirstOrDefault(rt => rt.TokenHash == incomingHash);
 
         if (existing is null)
-            throw new Exception("Refresh token not recognized.");
+            throw new ApiException(StatusCodes.Status401Unauthorized, "Refresh token not recognized.");
 
         if (!existing.IsActive)
         {
@@ -81,7 +101,7 @@ public class AuthService : IAuthService
                 await RevokeDescendantsAsync(existing, user, ip, "Reuse detected");
                 await _store.SaveChangesAsync();
             }
-            throw new Exception("Refresh token is no longer valid.");
+            throw new ApiException(StatusCodes.Status401Unauthorized, "Refresh token is no longer valid.");
         }
 
         // Rotate token

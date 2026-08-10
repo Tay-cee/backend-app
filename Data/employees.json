@@ -52,14 +52,5 @@
     "Department": "Engineering",
     "Status": "Active",
     "JoinedAt": "2023-11-30T11:45:00Z"
-  },
-  {
-    "Id": 13,
-    "Username": "dadsasd",
-    "Email": "adasdsad@dadd",
-    "Role": "dasdsada",
-    "Department": "adadsadasd",
-    "Status": "Active",
-    "JoinedAt": "2026-07-31T01:48:02.2429035Z"
   }
 ]

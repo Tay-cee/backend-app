@@ -21,12 +21,14 @@ public class TokenService : ITokenService
 {
     private readonly JwtOptions _jwt;
     private readonly SigningCredentials _creds;
+    private readonly ILogger<TokenService> _logger;
 
-    public TokenService(IOptions<JwtOptions> jwt)
+    public TokenService(IOptions<JwtOptions> jwt, ILogger<TokenService> logger)
     {
         _jwt = jwt.Value;
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Secret));
         _creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        _logger = logger;
     }
 
     public string GenerateAccessToken(AppUser user)
@@ -87,6 +89,10 @@ public class TokenService : ITokenService
                    jwt.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.OrdinalIgnoreCase)
                 ? principal : null;
         }
-        catch { return null; }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Token validation failed.");
+            return null;
+        }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace backend_app.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace backend_app.Models
 {
     public class Employee
     {
@@ -10,12 +12,14 @@
         public string Status { get; set; } = "Active";
         public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
 
+        public static readonly string[] ValidStatuses = { "Active", "On Leave", "Inactive" };
+
         public record CreateEmployeeDto(
-            string Username,
-            string Email,
-            string Role,
-            string Department,
-            string? Status = "Active"
+            [Required, MinLength(2), MaxLength(100)] string Username,
+            [Required, EmailAddress, MaxLength(256)] string Email,
+            [Required, MaxLength(100)] string Role,
+            [Required, MaxLength(100)] string Department,
+            [RegularExpression("Active|On Leave|Inactive")] string? Status = "Active"
         );
     }
 }
