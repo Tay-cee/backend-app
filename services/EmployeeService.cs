@@ -1,5 +1,7 @@
-﻿using System.Text.Json;
-using backend_app.Models;
+﻿using backend_app.Models;
+using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using backend_app.DTOs.Employee;
 
 namespace backend_app.services
 {
@@ -56,10 +58,20 @@ namespace backend_app.services
                     e.Status.Equals(status, StringComparison.OrdinalIgnoreCase)).ToList();
         }
 
-        public Employee Add(Employee employee)
+        public Employee Add([FromBody] CreateEmployeeDto dto)
         {
             lock (_lock)
             {
+                var employee = new Employee
+                {
+                    Username = dto.Username,
+                    Email = dto.Email,
+                    Role = dto.Role,
+                    Department = dto.Department,
+                    Status = dto.Status ?? "Active",
+                    JoinedAt = DateTime.UtcNow
+                };
+
                 employee.Id = _employees.Any() ? _employees.Max(e => e.Id) + 1 : 1;
                 _employees.Add(employee);
                 SaveChanges();

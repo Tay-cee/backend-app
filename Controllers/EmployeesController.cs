@@ -2,7 +2,7 @@
 using backend_app.services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using static backend_app.Models.Employee;
+using backend_app.DTOs.Employee;
 
 namespace backend_app.Controllers
 {
@@ -73,17 +73,7 @@ namespace backend_app.Controllers
         [Authorize(Roles = "Admin")]
         public IActionResult Create([FromBody] CreateEmployeeDto dto)
         {
-            var employee = new Employee
-            {
-                Username = dto.Username,
-                Email = dto.Email,
-                Role = dto.Role,
-                Department = dto.Department,
-                Status = dto.Status ?? "Active",
-                JoinedAt = DateTime.UtcNow
-            };
-
-            var created = _employeeService.Add(employee);
+            var created = _employeeService.Add(dto);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 

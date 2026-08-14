@@ -31,17 +31,4 @@ namespace backend_app.Models
         [JsonIgnore]
         public bool IsActive => !IsRevoked && !IsExpired;
     }
-
-    public record RegisterRequest(
-        [Required, MinLength(3), MaxLength(50)] string UserName,
-        [Required, EmailAddress, MaxLength(256)] string Email,
-        [Required, MinLength(8), MaxLength(128)] string Password);
-
-    public record LoginRequest(
-        [Required, EmailAddress] string Email,
-        [Required] string Password);
-
-    public record RefreshRequest(string? AccessToken, string? RefreshToken);
-    public record AuthResponse(string AccessToken, string RefreshToken, DateTime AccessTokenExpiresAt, DateTime RefreshTokenExpiresAt, UserDto User);
-    public record UserDto(Guid Id, string UserName, string Email, IEnumerable<string> Roles);
 }

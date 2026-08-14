@@ -5,6 +5,7 @@ using backend_app.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using backend_app.DTOs.User;
 
 namespace backend_app.services;
 
